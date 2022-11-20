@@ -31,7 +31,6 @@ type SearchSeriesResponse struct {
 }
 
 type SeasonSummary struct {
-	Id           uint64
 	Name         string
 	Overview     string
 	SeasonNumber uint64 `json:"season_number"`
@@ -42,7 +41,6 @@ type ShowFull struct {
 }
 
 type EpisodeSummary struct {
-	Id            uint64
 	Name          string
 	Overview      string
 	EpisodeNumber uint64  `json:"episode_number"`
@@ -184,7 +182,7 @@ func pickEpisode(pickedShow *ShowSummary, pickedSeason *SeasonSummary, apiKey st
 		{
 			options := make([]string, len(season.Episodes))
 			for i, episode := range season.Episodes {
-				options[i] = fmt.Sprintf("%s (%.1f/10)", episode.Name, episode.VoteAverage)
+				options[i] = fmt.Sprintf("%d %s (%.1f/10)", episode.EpisodeNumber, episode.Name, episode.VoteAverage)
 			}
 			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Episode").Show()
 
