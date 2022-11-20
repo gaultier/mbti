@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pterm/pterm"
@@ -61,6 +62,7 @@ func main() {
 	}
 
 	pterm.DefaultHeader.WithFullWidth(true).Println("Let's watch a TV show!")
+	pterm.DefaultBasicText.Println()
 	var search string
 	{
 		search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("I want to watch").WithMultiLine(false).Show()
@@ -92,19 +94,21 @@ func main() {
 		{
 			options := make([]string, len(response.Results))
 			for i, show := range response.Results {
-				options[i] = show.Name
+				options[i] = fmt.Sprintf("%s: (%.1f/10)", show.Name, show.VoteAverage)
 			}
-			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).WithMaxHeight(pterm.GetTerminalHeight()).WithDefaultText("Show").Show()
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).WithMaxHeight(pterm.GetTerminalHeight() / 2).WithDefaultText("Show").Show()
 
 			for i, show := range response.Results {
-				if show.Name == selectedOption {
+				if strings.HasPrefix(selectedOption, show.Name) {
 					pickedShow = &response.Results[i]
 				}
 			}
 		}
+		pterm.DefaultParagraph.Println(pickedShow.Overview)
 	}
 
 	// Get show
+	pterm.DefaultBasicText.Println()
 	var pickedSeason *SeasonSummary
 	{
 		url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, pickedShow.Id, apiKey)
@@ -133,14 +137,16 @@ func main() {
 			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Season").Show()
 
 			for i, season := range show.Seasons {
-				if season.Name == selectedOption {
+				if strings.HasPrefix(selectedOption, season.Name) {
 					pickedSeason = &show.Seasons[i]
 				}
 			}
 		}
+		pterm.DefaultParagraph.Println(pickedSeason.Overview)
 	}
 
 	// Get season's episodes
+	pterm.DefaultBasicText.Println()
 	var pickedEpisode *EpisodeSummary
 	{
 		url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
@@ -169,14 +175,16 @@ func main() {
 			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Episode").Show()
 
 			for i, episode := range season.Episodes {
-				if episode.Name == selectedOption {
+				if strings.HasPrefix(selectedOption, episode.Name) {
 					pickedEpisode = &season.Episodes[i]
 				}
 			}
 		}
 	}
+	pterm.DefaultParagraph.Println(pickedEpisode.Overview)
+	pterm.DefaultBasicText.Println()
+
 	pterm.DefaultCenter.Println("Now watching:\n")
 	s, _ := pterm.DefaultBigText.WithLetters(pterm.NewLettersFromString(pickedEpisode.Name)).Srender()
 	pterm.DefaultCenter.Println(s) // Print BigLetters with the default CenterPrinter
-	pterm.DefaultCenter.Println(pickedEpisode.Overview)
 }
