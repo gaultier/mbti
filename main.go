@@ -52,13 +52,15 @@ func main() {
 	{
 		page := 1
 		query := "Friends" // FIXME
-		res, err := client.Get(fmt.Sprintf("%s/search/tv?page=%d&api_key=%s&query=%s", ApiUrl, page, apiKey, url.QueryEscape(query)))
+		url := fmt.Sprintf("%s/search/tv?page=%d&api_key=%s&query=%s", ApiUrl, page, apiKey, url.QueryEscape(query))
+		res, err := client.Get(url)
 		if err != nil {
 			panic(err) // FIXME
 		}
 
 		if res.StatusCode != 200 {
-			log.Panicf("Non 200 response: %s %v", res.Status, res.Body)
+			body, _ := io.ReadAll(res.Body)
+			log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
 		}
 
 		response := SearchSeriesResponse{Results: make([]ShowSummary, 0, 500)}
