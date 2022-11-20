@@ -27,7 +27,7 @@ type SearchSeriesResponse struct {
 	Results []ShowSummary
 }
 
-type Season struct {
+type SeasonSummary struct {
 	Id           uint64
 	Name         string
 	Overview     string
@@ -35,7 +35,19 @@ type Season struct {
 }
 
 type ShowFull struct {
-	Seasons []Season
+	Seasons []SeasonSummary
+}
+
+type EpisodeSummary struct {
+	Id            uint64
+	Name          string
+	Overview      string
+	EpisodeNumber uint64  `json:"episode_number"`
+	VoteAverage   float32 `json:"vote_average"`
+}
+
+type SeasonFull struct {
+	Episodes []EpisodeSummary
 }
 
 func main() {
@@ -74,6 +86,8 @@ func main() {
 		pickedShow = &response.Results[0] // FIXME
 	}
 
+	// Get show
+	var pickedSeason *SeasonSummary
 	{
 		url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, pickedShow.Id, apiKey)
 		res, err := client.Get(url)
@@ -94,5 +108,29 @@ func main() {
 		}
 
 		log.Println(show)
+		pickedSeason = &show.Seasons[1] // FIXME
+	}
+
+	// Get season
+	{
+		url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
+		res, err := client.Get(url)
+		if err != nil {
+			panic(err) // FIXME
+		}
+
+		if res.StatusCode != 200 {
+			body, _ := io.ReadAll(res.Body)
+			log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+		}
+
+		season := SeasonFull{}
+		j := json.NewDecoder(res.Body)
+		err = j.Decode(&season)
+		if err != nil {
+			panic(err) // FIXME
+		}
+
+		log.Println(season)
 	}
 }
