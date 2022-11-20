@@ -68,36 +68,40 @@ func main() {
 	// Search shows
 	var pickedShow *ShowSummary
 	for pickedShow == nil {
+		// UI input
 		{
 			search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("I want to watch").WithMultiLine(false).Show()
 			pterm.Println() // Blank line
 		}
 
-		// No pagination
-		url := fmt.Sprintf("%s/search/tv?page=1&api_key=%s&query=%s", ApiUrl, apiKey, url.QueryEscape(search))
-		res, err := client.Get(url)
-		if err != nil {
-			panic(err) // FIXME
-		}
-
-		if res.StatusCode != 200 {
-			body, _ := io.ReadAll(res.Body)
-			log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
-		}
-
+		// API request
 		response := SearchSeriesResponse{Results: make([]ShowSummary, 0, 500)}
-		j := json.NewDecoder(res.Body)
-		err = j.Decode(&response)
-		if err != nil {
-			log.Fatalf("Failed to decode response: %v", err)
+		{
+			// No pagination
+			url := fmt.Sprintf("%s/search/tv?page=1&api_key=%s&query=%s", ApiUrl, apiKey, url.QueryEscape(search))
+			res, err := client.Get(url)
+			if err != nil {
+				panic(err) // FIXME
+			}
+
+			if res.StatusCode != 200 {
+				body, _ := io.ReadAll(res.Body)
+				log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+			}
+
+			j := json.NewDecoder(res.Body)
+			err = j.Decode(&response)
+			if err != nil {
+				log.Fatalf("Failed to decode response: %v", err)
+			}
+
+			if len(response.Results) == 0 {
+				pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println("Nothing found, try something else?")
+				continue
+			}
 		}
 
-		if len(response.Results) == 0 {
-			pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println("Nothing found, try something else?")
-			continue
-		}
-
-		// UI
+		// UI select
 		{
 			options := make([]string, len(response.Results))
 			for i, show := range response.Results {
@@ -118,24 +122,28 @@ func main() {
 	pterm.Println()
 	var pickedSeason *SeasonSummary
 	{
-		url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, pickedShow.Id, apiKey)
-		res, err := client.Get(url)
-		if err != nil {
-			panic(err) // FIXME
-		}
-
-		if res.StatusCode != 200 {
-			body, _ := io.ReadAll(res.Body)
-			log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
-		}
-
 		show := ShowFull{}
-		j := json.NewDecoder(res.Body)
-		err = j.Decode(&show)
-		if err != nil {
-			log.Fatalf("Failed to decode response: %v", err)
+		// API request
+		{
+			url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, pickedShow.Id, apiKey)
+			res, err := client.Get(url)
+			if err != nil {
+				panic(err) // FIXME
+			}
+
+			if res.StatusCode != 200 {
+				body, _ := io.ReadAll(res.Body)
+				log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+			}
+
+			j := json.NewDecoder(res.Body)
+			err = j.Decode(&show)
+			if err != nil {
+				log.Fatalf("Failed to decode response: %v", err)
+			}
 		}
 
+		// UI select
 		{
 			options := make([]string, len(show.Seasons))
 			for i, season := range show.Seasons {
@@ -156,24 +164,28 @@ func main() {
 	pterm.Println()
 	var pickedEpisode *EpisodeSummary
 	{
-		url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
-		res, err := client.Get(url)
-		if err != nil {
-			panic(err) // FIXME
+		// API request
+		{
+			url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
+			res, err := client.Get(url)
+			if err != nil {
+				panic(err) // FIXME
+			}
+
+			if res.StatusCode != 200 {
+				body, _ := io.ReadAll(res.Body)
+				log.Fatalf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+			}
+
+			season := SeasonFull{}
+			j := json.NewDecoder(res.Body)
+			err = j.Decode(&season)
+			if err != nil {
+				log.Fatalf("Failed to decode response: %v", err)
+			}
 		}
 
-		if res.StatusCode != 200 {
-			body, _ := io.ReadAll(res.Body)
-			log.Fatalf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
-		}
-
-		season := SeasonFull{}
-		j := json.NewDecoder(res.Body)
-		err = j.Decode(&season)
-		if err != nil {
-			log.Fatalf("Failed to decode response: %v", err)
-		}
-
+		// UI select
 		{
 			options := make([]string, len(season.Episodes))
 			for i, episode := range season.Episodes {
@@ -188,6 +200,8 @@ func main() {
 			}
 		}
 	}
+
+	// UI niceties for the end
 	pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedEpisode.Overview))
 	pterm.DefaultBasicText.Println()
 
