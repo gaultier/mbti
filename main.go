@@ -88,7 +88,7 @@ func main() {
 		j := json.NewDecoder(res.Body)
 		err = j.Decode(&response)
 		if err != nil {
-			panic(err) // FIXME
+			log.Fatalf("Failed to decode response: %v", err)
 		}
 
 		{
@@ -104,7 +104,7 @@ func main() {
 				}
 			}
 		}
-		pterm.DefaultParagraph.Println(pickedShow.Overview)
+		pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedShow.Overview))
 	}
 
 	// Get show
@@ -126,7 +126,7 @@ func main() {
 		j := json.NewDecoder(res.Body)
 		err = j.Decode(&show)
 		if err != nil {
-			panic(err) // FIXME
+			log.Fatalf("Failed to decode response: %v", err)
 		}
 
 		{
@@ -142,7 +142,7 @@ func main() {
 				}
 			}
 		}
-		pterm.DefaultParagraph.Println(pickedSeason.Overview)
+		pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedSeason.Overview))
 	}
 
 	// Get season's episodes
@@ -157,14 +157,14 @@ func main() {
 
 		if res.StatusCode != 200 {
 			body, _ := io.ReadAll(res.Body)
-			log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+			log.Fatalf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
 		}
 
 		season := SeasonFull{}
 		j := json.NewDecoder(res.Body)
 		err = j.Decode(&season)
 		if err != nil {
-			panic(err) // FIXME
+			log.Fatalf("Failed to decode response: %v", err)
 		}
 
 		{
@@ -181,7 +181,7 @@ func main() {
 			}
 		}
 	}
-	pterm.DefaultParagraph.Println(pickedEpisode.Overview)
+	pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedEpisode.Overview))
 	pterm.DefaultBasicText.Println()
 
 	pterm.DefaultCenter.Println("Now watching:\n")
