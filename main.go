@@ -64,16 +64,17 @@ func main() {
 	pterm.DefaultHeader.WithFullWidth(true).WithBackgroundStyle(pterm.NewStyle(pterm.BgLightMagenta)).WithTextStyle(pterm.NewStyle(pterm.FgBlack)).Println("Let's watch a TV show!")
 	pterm.Println()
 	var search string
-	{
-		search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("I want to watch").WithMultiLine(false).Show()
-		pterm.Println() // Blank line
-	}
 
 	// Search shows
 	var pickedShow *ShowSummary
-	{
-		page := 1
-		url := fmt.Sprintf("%s/search/tv?page=%d&api_key=%s&query=%s", ApiUrl, page, apiKey, url.QueryEscape(search))
+	for pickedShow == nil {
+		{
+			search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("I want to watch").WithMultiLine(false).Show()
+			pterm.Println() // Blank line
+		}
+
+		// No pagination
+		url := fmt.Sprintf("%s/search/tv?page=1&api_key=%s&query=%s", ApiUrl, apiKey, url.QueryEscape(search))
 		res, err := client.Get(url)
 		if err != nil {
 			panic(err) // FIXME
@@ -91,6 +92,12 @@ func main() {
 			log.Fatalf("Failed to decode response: %v", err)
 		}
 
+		if len(response.Results) == 0 {
+			pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println("Nothing found, try something else?")
+			continue
+		}
+
+		// UI
 		{
 			options := make([]string, len(response.Results))
 			for i, show := range response.Results {
@@ -101,10 +108,10 @@ func main() {
 			for i, show := range response.Results {
 				if strings.HasPrefix(selectedOption, show.Name) {
 					pickedShow = &response.Results[i]
+					pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedShow.Overview))
 				}
 			}
 		}
-		pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedShow.Overview))
 	}
 
 	// Get show
