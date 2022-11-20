@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/pterm/pterm"
 )
 
 const (
@@ -59,12 +61,17 @@ func main() {
 		log.Fatalf("No API_KEY environment variable set")
 	}
 
+	var search string
+	{
+		search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("What do you want to watch?").WithMultiLine(false).Show()
+		pterm.Println() // Blank line
+	}
+
 	// Search shows.
 	var pickedShow *ShowSummary
 	{
 		page := 1
-		query := "Friends" // FIXME
-		url := fmt.Sprintf("%s/search/tv?page=%d&api_key=%s&query=%s", ApiUrl, page, apiKey, url.QueryEscape(query))
+		url := fmt.Sprintf("%s/search/tv?page=%d&api_key=%s&query=%s", ApiUrl, page, apiKey, url.QueryEscape(search))
 		res, err := client.Get(url)
 		if err != nil {
 			panic(err) // FIXME
@@ -82,8 +89,20 @@ func main() {
 			panic(err) // FIXME
 		}
 
-		log.Println(response.Results[0:5])
-		pickedShow = &response.Results[0] // FIXME
+		{
+			options := make([]string, len(response.Results))
+			for i, show := range response.Results {
+				options[i] = show.Name
+			}
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).Show()
+			pterm.Info.Printfln("Selected show: %s", pterm.Green(selectedOption))
+
+			for i, show := range response.Results {
+				if show.Name == selectedOption {
+					pickedShow = &response.Results[i]
+				}
+			}
+		}
 	}
 
 	// Get show
@@ -107,11 +126,24 @@ func main() {
 			panic(err) // FIXME
 		}
 
-		log.Println(show)
-		pickedSeason = &show.Seasons[1] // FIXME
+		{
+			options := make([]string, len(show.Seasons))
+			for i, season := range show.Seasons {
+				options[i] = season.Name
+			}
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).Show()
+			pterm.Info.Printfln("Selected season: %s", pterm.Green(selectedOption))
+
+			for i, season := range show.Seasons {
+				if season.Name == selectedOption {
+					pickedSeason = &show.Seasons[i]
+				}
+			}
+		}
 	}
 
-	// Get season
+	// Get season's episodes
+	var pickedEpisode *EpisodeSummary
 	{
 		url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
 		res, err := client.Get(url)
@@ -131,6 +163,22 @@ func main() {
 			panic(err) // FIXME
 		}
 
-		log.Println(season)
+		{
+			options := make([]string, len(season.Episodes))
+			for i, episode := range season.Episodes {
+				options[i] = episode.Name
+			}
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).Show()
+			pterm.Info.Printfln("Selected show: %s", pterm.Green(selectedOption))
+
+			for i, episode := range season.Episodes {
+				if episode.Name == selectedOption {
+					pickedEpisode = &season.Episodes[i]
+				}
+			}
+		}
 	}
+	pterm.DefaultCenter.Println("Now watching:\n")
+	s, _ := pterm.DefaultBigText.WithLetters(pterm.NewLettersFromString(pickedEpisode.Name)).Srender()
+	pterm.DefaultCenter.Println(s) // Print BigLetters with the default CenterPrinter
 }
