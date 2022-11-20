@@ -92,12 +92,12 @@ func pickShow(apiKey string, client *http.Client) *ShowSummary {
 	{
 		options := make([]string, len(response.Results))
 		for i, show := range response.Results {
-			options[i] = fmt.Sprintf("%s: (%.1f/10)", show.Name, show.VoteAverage)
+			options[i] = fmt.Sprintf("%s (%.1f/10)", show.Name, show.VoteAverage)
 		}
 		selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).WithMaxHeight(pterm.GetTerminalHeight() / 2).WithDefaultText("Show").Show()
 
-		for i, show := range response.Results {
-			if strings.HasPrefix(selectedOption, show.Name) {
+		for i, option := range options {
+			if option == selectedOption {
 				pickedShow := &response.Results[i]
 				pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedShow.Overview))
 				return pickedShow
@@ -139,8 +139,8 @@ func pickSeason(showSummary *ShowSummary, apiKey string, client *http.Client) *S
 		}
 		selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Season").Show()
 
-		for i, season := range show.Seasons {
-			if strings.HasPrefix(selectedOption, season.Name) {
+		for i, option := range options {
+			if option == selectedOption {
 				pickedSeason := &show.Seasons[i]
 				pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedSeason.Overview))
 				return pickedSeason
@@ -184,12 +184,12 @@ func pickEpisode(pickedShow *ShowSummary, pickedSeason *SeasonSummary, apiKey st
 		{
 			options := make([]string, len(season.Episodes))
 			for i, episode := range season.Episodes {
-				options[i] = episode.Name
+				options[i] = fmt.Sprintf("%s (%.1f/10)", episode.Name, episode.VoteAverage)
 			}
 			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Episode").Show()
 
-			for i, episode := range season.Episodes {
-				if strings.HasPrefix(selectedOption, episode.Name) {
+			for i, option := range options {
+				if option == selectedOption {
 					return &season.Episodes[i]
 				}
 			}
