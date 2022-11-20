@@ -228,7 +228,7 @@ func main() {
 	pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedEpisode.Overview))
 	pterm.DefaultBasicText.Println()
 
-	pterm.DefaultCenter.Println("Now watching:\n")
+	pterm.DefaultCenter.Println("Now watching:")
 	s, _ := pterm.DefaultBigText.WithLetters(pterm.NewLettersFromStringWithStyle(pickedEpisode.Name, pterm.NewStyle(pterm.FgLightMagenta))).Srender()
 	pterm.DefaultCenter.Println(s) // Print BigLetters with the default CenterPrinter
 }
