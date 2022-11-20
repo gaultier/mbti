@@ -61,8 +61,8 @@ func main() {
 		log.Fatalf("No API_KEY environment variable set")
 	}
 
-	pterm.DefaultHeader.WithFullWidth(true).Println("Let's watch a TV show!")
-	pterm.DefaultBasicText.Println()
+	pterm.DefaultHeader.WithFullWidth(true).WithBackgroundStyle(pterm.NewStyle(pterm.BgLightMagenta)).WithTextStyle(pterm.NewStyle(pterm.FgBlack)).Println("Let's watch a TV show!")
+	pterm.Println()
 	var search string
 	{
 		search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("I want to watch").WithMultiLine(false).Show()
@@ -108,7 +108,7 @@ func main() {
 	}
 
 	// Get show
-	pterm.DefaultBasicText.Println()
+	pterm.Println()
 	var pickedSeason *SeasonSummary
 	{
 		url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, pickedShow.Id, apiKey)
@@ -146,7 +146,7 @@ func main() {
 	}
 
 	// Get season's episodes
-	pterm.DefaultBasicText.Println()
+	pterm.Println()
 	var pickedEpisode *EpisodeSummary
 	{
 		url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
@@ -185,6 +185,6 @@ func main() {
 	pterm.DefaultBasicText.Println()
 
 	pterm.DefaultCenter.Println("Now watching:\n")
-	s, _ := pterm.DefaultBigText.WithLetters(pterm.NewLettersFromString(pickedEpisode.Name)).Srender()
+	s, _ := pterm.DefaultBigText.WithLetters(pterm.NewLettersFromStringWithStyle(pickedEpisode.Name, pterm.NewStyle(pterm.FgLightMagenta))).Srender()
 	pterm.DefaultCenter.Println(s) // Print BigLetters with the default CenterPrinter
 }
