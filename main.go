@@ -53,7 +53,6 @@ type SeasonFull struct {
 }
 
 func main() {
-	fmt.Println("vim-go")
 	client := http.Client{Timeout: 10 * time.Second}
 
 	apiKey := os.Getenv("API_KEY")
@@ -61,13 +60,14 @@ func main() {
 		log.Fatalf("No API_KEY environment variable set")
 	}
 
+	pterm.DefaultHeader.WithFullWidth(true).Println("Let's watch a TV show!")
 	var search string
 	{
-		search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("What do you want to watch?").WithMultiLine(false).Show()
+		search, _ = pterm.DefaultInteractiveTextInput.WithDefaultText("I want to watch").WithMultiLine(false).Show()
 		pterm.Println() // Blank line
 	}
 
-	// Search shows.
+	// Search shows
 	var pickedShow *ShowSummary
 	{
 		page := 1
@@ -94,8 +94,7 @@ func main() {
 			for i, show := range response.Results {
 				options[i] = show.Name
 			}
-			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).Show()
-			pterm.Info.Printfln("Selected show: %s", pterm.Green(selectedOption))
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).WithMaxHeight(pterm.GetTerminalHeight()).WithDefaultText("Show").Show()
 
 			for i, show := range response.Results {
 				if show.Name == selectedOption {
@@ -131,8 +130,7 @@ func main() {
 			for i, season := range show.Seasons {
 				options[i] = season.Name
 			}
-			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).Show()
-			pterm.Info.Printfln("Selected season: %s", pterm.Green(selectedOption))
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Season").Show()
 
 			for i, season := range show.Seasons {
 				if season.Name == selectedOption {
@@ -168,8 +166,7 @@ func main() {
 			for i, episode := range season.Episodes {
 				options[i] = episode.Name
 			}
-			selectedOption, _ := pterm.DefaultInteractiveSelect.WithOptions(options).Show()
-			pterm.Info.Printfln("Selected show: %s", pterm.Green(selectedOption))
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Episode").Show()
 
 			for i, episode := range season.Episodes {
 				if episode.Name == selectedOption {
@@ -181,4 +178,5 @@ func main() {
 	pterm.DefaultCenter.Println("Now watching:\n")
 	s, _ := pterm.DefaultBigText.WithLetters(pterm.NewLettersFromString(pickedEpisode.Name)).Srender()
 	pterm.DefaultCenter.Println(s) // Print BigLetters with the default CenterPrinter
+	pterm.DefaultCenter.Println(pickedEpisode.Overview)
 }
