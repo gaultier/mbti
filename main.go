@@ -53,6 +53,97 @@ type SeasonFull struct {
 	Episodes []EpisodeSummary
 }
 
+func pickSeason(showSummary *ShowSummary, apiKey string, client *http.Client) *SeasonSummary {
+	show := ShowFull{}
+	// API request
+	{
+		url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, showSummary.Id, apiKey)
+		res, err := client.Get(url)
+		if err != nil {
+			panic(err) // FIXME
+		}
+
+		if res.StatusCode != 200 {
+			body, _ := io.ReadAll(res.Body)
+			log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+		}
+
+		j := json.NewDecoder(res.Body)
+		err = j.Decode(&show)
+		if err != nil {
+			log.Fatalf("Failed to decode response: %v", err)
+		}
+	}
+	// We assume there is at least one season
+
+	// UI select
+	{
+		options := make([]string, len(show.Seasons))
+		for i, season := range show.Seasons {
+			options[i] = season.Name
+		}
+		selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Season").Show()
+
+		for i, season := range show.Seasons {
+			if strings.HasPrefix(selectedOption, season.Name) {
+				pickedSeason := &show.Seasons[i]
+				pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedSeason.Overview))
+				return pickedSeason
+			}
+		}
+	}
+	return nil
+}
+
+func pickEpisode(pickedShow *ShowSummary, pickedSeason *SeasonSummary, apiKey string, client *http.Client) *EpisodeSummary {
+	// Get season's episodes
+	pterm.Println()
+	{
+		season := SeasonFull{}
+		// API request
+		{
+			url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
+			res, err := client.Get(url)
+			if err != nil {
+				panic(err) // FIXME
+			}
+
+			if res.StatusCode != 200 {
+				body, _ := io.ReadAll(res.Body)
+				log.Fatalf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
+			}
+
+			j := json.NewDecoder(res.Body)
+			err = j.Decode(&season)
+			if err != nil {
+				log.Fatalf("Failed to decode response: %v", err)
+			}
+		}
+		// Some seasons actually have no episodes (e.g. House of the Dragon season 2)
+		if len(season.Episodes) == 0 {
+			pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println("This season does not have episodes yet, check again later!")
+			return nil
+		}
+
+		// UI select
+		{
+			options := make([]string, len(season.Episodes))
+			for i, episode := range season.Episodes {
+				options[i] = episode.Name
+			}
+			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Episode").Show()
+
+			for i, episode := range season.Episodes {
+				if strings.HasPrefix(selectedOption, episode.Name) {
+					return &season.Episodes[i]
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	client := http.Client{Timeout: 10 * time.Second}
 
@@ -118,89 +209,14 @@ func main() {
 		}
 	}
 
-	// Get show
-	pterm.Println()
-	var pickedSeason *SeasonSummary
-	{
-		show := ShowFull{}
-		// API request
-		{
-			url := fmt.Sprintf("%s/tv/%d?api_key=%s", ApiUrl, pickedShow.Id, apiKey)
-			res, err := client.Get(url)
-			if err != nil {
-				panic(err) // FIXME
-			}
-
-			if res.StatusCode != 200 {
-				body, _ := io.ReadAll(res.Body)
-				log.Panicf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
-			}
-
-			j := json.NewDecoder(res.Body)
-			err = j.Decode(&show)
-			if err != nil {
-				log.Fatalf("Failed to decode response: %v", err)
-			}
-		}
-		// We assume there is at least one season
-
-		// UI select
-		{
-			options := make([]string, len(show.Seasons))
-			for i, season := range show.Seasons {
-				options[i] = season.Name
-			}
-			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Season").Show()
-
-			for i, season := range show.Seasons {
-				if strings.HasPrefix(selectedOption, season.Name) {
-					pickedSeason = &show.Seasons[i]
-				}
-			}
-		}
-		pterm.DefaultBasicText.WithStyle(pterm.NewStyle(pterm.Italic)).Println(strings.TrimSpace(pickedSeason.Overview))
-	}
-
-	// Get season's episodes
 	pterm.Println()
 	var pickedEpisode *EpisodeSummary
-	{
-		season := SeasonFull{}
-		// API request
-		{
-			url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
-			res, err := client.Get(url)
-			if err != nil {
-				panic(err) // FIXME
-			}
-
-			if res.StatusCode != 200 {
-				body, _ := io.ReadAll(res.Body)
-				log.Fatalf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
-			}
-
-			j := json.NewDecoder(res.Body)
-			err = j.Decode(&season)
-			if err != nil {
-				log.Fatalf("Failed to decode response: %v", err)
-			}
-		}
-		// Some seasons actually have no episodes (e.g. House of the Dragon season 2)
-
-		// UI select
-		{
-			options := make([]string, len(season.Episodes))
-			for i, episode := range season.Episodes {
-				options[i] = episode.Name
-			}
-			selectedOption, _ := pterm.DefaultInteractiveSelect.WithMaxHeight(pterm.GetTerminalHeight()).WithOptions(options).WithDefaultText("Episode").Show()
-
-			for i, episode := range season.Episodes {
-				if strings.HasPrefix(selectedOption, episode.Name) {
-					pickedEpisode = &season.Episodes[i]
-				}
-			}
-		}
+	// Need this loop since some seasons do not have any episodes,
+	// and we only noticde when the season has been picked already,
+	// so we ask then the user to pick a different season
+	for pickedEpisode == nil {
+		pickedSeason := pickSeason(pickedShow, apiKey, &client)
+		pickedEpisode = pickEpisode(pickedShow, pickedSeason, apiKey, &client)
 	}
 
 	// UI niceties for the end
