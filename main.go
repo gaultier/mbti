@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +21,11 @@ type Series struct {
 	VoteAverage float32 `json:"vote_average"`
 }
 
+type Response struct {
+	Page    uint64
+	Results []Series
+}
+
 func main() {
 	fmt.Println("vim-go")
 	client := http.Client{Timeout: 10 * time.Second}
@@ -31,9 +38,17 @@ func main() {
 		panic(err) // TODO: improve
 	}
 
+	if res.StatusCode != 200 {
+		log.Panicf("Non 200 response: %s %v", res.Status, res.Body)
+	}
 
-	var series :=make([]Series, 0, 500)
-	json.Unmarshal(res, &series)
-	
+	response := Response{Results: make([]Series, 0, 500)}
+	j := json.NewDecoder(res.Body)
+	err = j.Decode(&response)
+	if err != nil {
+		panic(err) // TODO: improve
+	}
+
+	log.Println(response.Results[0:5])
 
 }
