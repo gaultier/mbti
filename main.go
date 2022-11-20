@@ -142,6 +142,7 @@ func main() {
 				log.Fatalf("Failed to decode response: %v", err)
 			}
 		}
+		// We assume there is at least one season
 
 		// UI select
 		{
@@ -164,6 +165,7 @@ func main() {
 	pterm.Println()
 	var pickedEpisode *EpisodeSummary
 	{
+		season := SeasonFull{}
 		// API request
 		{
 			url := fmt.Sprintf("%s/tv/%d/season/%d?api_key=%s", ApiUrl, pickedShow.Id, pickedSeason.SeasonNumber, apiKey)
@@ -177,13 +179,13 @@ func main() {
 				log.Fatalf("Non 200 response: url=%s status=%s body=%s", url, res.Status, body)
 			}
 
-			season := SeasonFull{}
 			j := json.NewDecoder(res.Body)
 			err = j.Decode(&season)
 			if err != nil {
 				log.Fatalf("Failed to decode response: %v", err)
 			}
 		}
+		// Some seasons actually have no episodes (e.g. House of the Dragon season 2)
 
 		// UI select
 		{
