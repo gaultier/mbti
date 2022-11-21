@@ -24,4 +24,4 @@ One testing approach would be to mock the API by passing a function pointer to t
 About the architecture: it's just a few functions operating on structs. It's very C like. That's what I found to be the simplest to understand in my software engineer career, and is very easy to debug (no virtual calls/indirections). People coming from any programming language will comprehend it right away.
 
 
-<img src="screenshot.png"/>
+<img src="example.png"/>
